@@ -1,0 +1,73 @@
+{
+  "Files": [
+    {
+      "Id": "/Users/jcobmagar/Journal-main/NewJornalApp/obj/Debug/net9.0-maccatalyst/maccatalyst-arm64/scopedcss/bundle/NewJornalApp.styles.css",
+      "PackagePath": "staticwebassets/NewJornalApp.styles.css"
+    },
+    {
+      "Id": "/Users/jcobmagar/Journal-main/NewJornalApp/wwwroot/css/app.css",
+      "PackagePath": "staticwebassets/css/app.css"
+    },
+    {
+      "Id": "/Users/jcobmagar/Journal-main/NewJornalApp/wwwroot/css/bootstrap/bootstrap.min.css",
+      "PackagePath": "staticwebassets/css/bootstrap/bootstrap.min.css"
+    },
+    {
+      "Id": "/Users/jcobmagar/Journal-main/NewJornalApp/wwwroot/css/bootstrap/bootstrap.min.css.map",
+      "PackagePath": "staticwebassets/css/bootstrap/bootstrap.min.css.map"
+    },
+    {
+      "Id": "/Users/jcobmagar/Journal-main/NewJornalApp/wwwroot/css/export.css",
+      "PackagePath": "staticwebassets/css/export.css"
+    },
+    {
+      "Id": "/Users/jcobmagar/Journal-main/NewJornalApp/wwwroot/css/write.css",
+      "PackagePath": "staticwebassets/css/write.css"
+    },
+    {
+      "Id": "/Users/jcobmagar/Journal-main/NewJornalApp/wwwroot/index.html",
+      "PackagePath": "staticwebassets/index.html"
+    },
+    {
+      "Id": "/Users/jcobmagar/Journal-main/NewJornalApp/wwwroot/js/dashboard-charts.js",
+      "PackagePath": "staticwebassets/js/dashboard-charts.js"
+    },
+    {
+      "Id": "/Users/jcobmagar/Journal-main/NewJornalApp/wwwroot/js/export-pdf.js",
+      "PackagePath": "staticwebassets/js/export-pdf.js"
+    },
+    {
+      "Id": "/Users/jcobmagar/Journal-main/NewJornalApp/wwwroot/js/markdown.js",
+      "PackagePath": "staticwebassets/js/markdown.js"
+    },
+    {
+      "Id": "/Users/jcobmagar/Journal-main/NewJornalApp/wwwroot/js/theme.js",
+      "PackagePath": "staticwebassets/js/theme.js"
+    },
+    {
+      "Id": "/Users/jcobmagar/Journal-main/NewJornalApp/wwwroot/js/write-preview.js",
+      "PackagePath": "staticwebassets/js/write-preview.js"
+    },
+    {
+      "Id": "obj/Debug/net9.0-maccatalyst/maccatalyst-arm64/staticwebassets/msbuild.NewJornalApp.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+    },
+    {
+      "Id": "obj/Debug/net9.0-maccatalyst/maccatalyst-arm64/staticwebassets/msbuild.NewJornalApp.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj/Debug/net9.0-maccatalyst/maccatalyst-arm64/staticwebassets/msbuild.build.NewJornalApp.props",
+      "PackagePath": "build\\NewJornalApp.props"
+    },
+    {
+      "Id": "obj/Debug/net9.0-maccatalyst/maccatalyst-arm64/staticwebassets/msbuild.buildMultiTargeting.NewJornalApp.props",
+      "PackagePath": "buildMultiTargeting\\NewJornalApp.props"
+    },
+    {
+      "Id": "obj/Debug/net9.0-maccatalyst/maccatalyst-arm64/staticwebassets/msbuild.buildTransitive.NewJornalApp.props",
+      "PackagePath": "buildTransitive\\NewJornalApp.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

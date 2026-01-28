@@ -1,0 +1,75 @@
+﻿<div class="sidebar-panel">
+    <div class="brand">
+        <div class="logo">✍️</div>
+        <div class="brand-info">
+            <div class="app-name">JournalApp</div>
+            <div class="streak">1 day streak 🔥</div>
+        </div>
+    </div>
+
+    <nav class="menu">
+        <div class="menu-item">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="emoji">🏠</span>
+                <span class="label">Home</span>
+            </NavLink>
+        </div>
+
+        <div class="menu-item">
+            <NavLink class="nav-link" href="calendar">
+                <span class="emoji">📅</span>
+                <span class="label">Calendar</span>
+            </NavLink>
+        </div>
+
+        <div class="menu-item">
+            <NavLink class="nav-link" href="search">
+                <span class="emoji">🔎</span>
+                <span class="label">Search</span>
+            </NavLink>
+        </div>
+
+        <div class="menu-item">
+            <NavLink class="nav-link" href="dashboard">
+                <span class="emoji">📊</span>
+                <span class="label">Dashboard</span>
+            </NavLink>
+        </div>
+
+        <div class="menu-item">
+            <NavLink class="nav-link" href="export">
+                <span class="emoji">📄</span>
+                <span class="label">Export</span>
+            </NavLink>
+        </div>
+
+        <div class="menu-item">
+            <NavLink class="nav-link" href="theme">
+                <span class="emoji">🌙</span>
+                <span class="label">Theme</span>
+            </NavLink>
+        </div>
+
+
+    </nav>
+
+@using NewJornalApp.Auth
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Nav
+
+
+
+    <div class="bottom">
+        <a class="btn-new-entry btn btn-primary" href="/write">+ New Entry</a>
+        <button class="logout btn btn-link" @onclick="Logout">Logout</button>
+    </div>
+</div>
+
+@code {
+    private async Task Logout()
+    {
+        var authElement = (CustomAuthenticationStateProvider)AuthStateProvider;
+        authElement.Logout();
+        Nav.NavigateTo("/login", true);
+    }
+}

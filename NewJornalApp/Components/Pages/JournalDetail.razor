@@ -1,0 +1,145 @@
+@page "/journal/{Id:int}"
+@using NewJornalApp.Models
+@using NewJornalApp.Services
+@inject JournalService JournalService
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+
+<div class="container-fluid mt-4 fade-in mb-5">
+    @if (journal == null)
+    {
+        if (isLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <h3>Journal entry not found</h3>
+                <button class="btn btn-primary mt-3" @onclick="GoBack">Back to Home</button>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-11" style="max-width: 1400px;">
+                <div class="card shadow-sm border-0 rounded-lg">
+                    <!-- Header with Gradient -->
+                    <div class="card-header border-0 text-white p-4" 
+                         style="background: linear-gradient(135deg, #c82333 0%, #a01a28 100%); border-radius: 0.5rem 0.5rem 0 0;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <button class="btn btn-sm btn-outline-light" @onclick="GoBack">
+                                ← Back
+                            </button>
+                            <span class="opacity-75">@journal.Date.ToString("dddd, MMMM dd, yyyy")</span>
+                        </div>
+                        <h1 class="mt-3 mb-1 display-5 fw-bold">@journal.Title</h1>
+                        <div class="mt-2 text-white-50">
+                            @if (!string.IsNullOrEmpty(journal.Emoji))
+                            {
+                                <span class="fs-4 me-2">@journal.Emoji</span>
+                            }
+                            @if (!string.IsNullOrEmpty(journal.Tags))
+                            {
+                                <span class="d-inline-flex align-items-center">
+                                    <i class="fas fa-tag me-1 small"></i> @journal.Tags
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Content Body -->
+                    <div class="card-body p-4 p-md-5">
+                        <div id="journal-content" class="markdown-body">
+                            <!-- Content will be rendered here by JS -->
+                            @((MarkupString)renderedContent)
+                        </div>
+                        
+                        @if (journal.SecondaryMoods != null && journal.SecondaryMoods.Any())
+                        {
+                            <div class="mt-5 pt-4 border-top">
+                                <h5 class="text-muted mb-3">Detailed Moods</h5>
+                                <div>
+                                    @foreach (var mood in journal.SecondaryMoods)
+                                    {
+                                        <span class="badge bg-light text-dark border me-2 mb-2 p-2">
+                                            @mood.SecondaryMoodName
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Journal? journal;
+    private bool isLoading = true;
+    private string renderedContent = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            journal = await JournalService.GetByIdAsync(Id);
+            
+            if (journal != null && !string.IsNullOrEmpty(journal.Content))
+            {
+                // Simple markdown rendering if JS fails or for SSR
+                // In a real app we'd rely on the JS interop significantly more
+                // But let's try to do a basic render or wait for after render
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading journal: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (journal != null && !string.IsNullOrEmpty(journal.Content))
+        {
+            // Use the existing markdown preview logic but render to a string or element
+            // We'll reuse the logic from write-preview.js if possible, or just call marked directly
+            try 
+            {
+                var html = await JS.InvokeAsync<string>("eval", $"marked.parse(`{journal.Content.Replace("`", "\\`")}`)");
+                if (renderedContent != html)
+                {
+                    renderedContent = html;
+                    StateHasChanged();
+                }
+            }
+            catch
+            {
+                // Fallback if JS fails
+                renderedContent = journal.Content;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void GoBack()
+    {
+        NavManager.NavigateTo("/");
+    }
+}

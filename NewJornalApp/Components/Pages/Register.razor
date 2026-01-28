@@ -1,0 +1,61 @@
+@page "/register"
+@using NewJornalApp.Services
+@attribute [AllowAnonymous]
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+
+<div class="row justify-content-center mt-5 fade-in">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-lg border-0 rounded-lg">
+            <div class="card-header border-0 text-white p-4" 
+                 style="background: linear-gradient(135deg, #c82333 0%, #a01a28 100%); border-radius: 12px 12px 0 0;">
+                <h3 class="mb-0 text-center">📝 Register</h3>
+                <p class="mb-0 mt-2 text-center opacity-75">Create your private journal account</p>
+            </div>
+            <div class="card-body p-4">
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger">@errorMessage</div>
+                }
+
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-control" @bind="username" placeholder="Choose a username" />
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-control" @bind="password" placeholder="Choose a password" />
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary btn-lg" @onclick="HandleRegister" style="background: #c82333; border: none;">
+                        Create Account
+                    </button>
+                    <div class="text-center mt-2">
+                        <small class="text-muted">Already have an account?</small> <br/>
+                        <a href="/login" class="fw-bold" style="color: #c82333;">Login Here</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string username = "";
+    private string password = "";
+    private string? errorMessage;
+
+    private async Task HandleRegister()
+    {
+        try
+        {
+            await AuthService.RegisterAsync(username, password);
+            Nav.NavigateTo("/login");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+}

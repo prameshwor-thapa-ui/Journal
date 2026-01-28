@@ -1,0 +1,59 @@
+@page "/search"
+@using NewJornalApp.Models
+@using Microsoft.AspNetCore.Components.Web
+@inject NewJornalApp.Services.JournalService JournalService
+
+<div class="search-page">
+  <div class="search-header" style="display:flex; gap:.5rem; align-items:center; margin-bottom:1rem;">
+    <input class="form-control search-input" placeholder="Search title, content, emoji..." @bind="term" @bind:event="oninput" @onkeypress="OnKeyPress" />
+    <button class="btn btn-primary" @onclick="DoSearch">Search</button>
+    <button class="btn btn-link" @onclick="Clear">Clear</button>
+  </div>
+
+  <div class="search-results">
+    @if (isSearching)
+    {
+      <p><em>Searching…</em></p>
+    }
+    else if (results == null || !results.Any())
+    {
+      <p><em>No results.</em></p>
+    }
+    else
+    {
+      @foreach (var r in results)
+      {
+        <EntryCard Id="@r.Id" Emoji="@r.Emoji" Title="@r.Title" Excerpt="@(r.Content?.Length > 200 ? r.Content.Substring(0,200) + "..." : r.Content)" Date="@r.Date.ToLongDateString()" />
+      }
+    }
+  </div>
+</div>
+
+@code {
+  private string term = string.Empty;
+  private List<Journal> results = new();
+  private bool isSearching = false;
+
+  protected override async Task OnInitializedAsync()
+  {
+    results = await JournalService.GetAllAsync();
+  }
+
+  private async Task DoSearch()
+  {
+    isSearching = true;
+    results = await JournalService.SearchAsync(term);
+    isSearching = false;
+  }
+
+  private async Task OnKeyPress(KeyboardEventArgs e)
+  {
+    if (e.Key == "Enter") await DoSearch();
+  }
+
+  private async Task Clear()
+  {
+    term = string.Empty;
+    results = await JournalService.GetAllAsync();
+  }
+}

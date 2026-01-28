@@ -1,0 +1,110 @@
+/* Export Page Styles */
+.export-page {
+  max-width: 1600px;
+  width: 95%;
+  margin: 0 auto;
+}
+
+.export-header {
+  background: linear-gradient(135deg, #c82333 0%, #a01a28 100%);
+  color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.export-header h3 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.filter-card {
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.filter-card .card-header {
+  background: var(--input-bg);
+  border-bottom: 2px solid var(--border-color);
+  padding: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.journal-list {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.journal-item {
+  padding: 1rem;
+  border-bottom: 1px solid #e9ecef;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.journal-item:hover {
+  background: var(--sidebar-hover);
+}
+
+.journal-item:last-child {
+  border-bottom: none;
+}
+
+.journal-checkbox {
+  width: 20px;
+  height: 20px;
+  margin-right: 1rem;
+  cursor: pointer;
+}
+
+.journal-title {
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 0.25rem;
+}
+
+.journal-meta {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.export-btn {
+  background: linear-gradient(135deg, #c82333 0%, #a01a28 100%);
+  border: none;
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.export-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.select-all-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  border-radius: 6px;
+}
+
+.export-summary {
+  background: #e7f3ff;
+  border-left: 4px solid #667eea;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.export-summary strong {
+  color: #667eea;
+}

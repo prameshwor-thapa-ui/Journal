@@ -1,0 +1,314 @@
+@page "/write"
+@using NewJornalApp.Models
+@inject NewJornalApp.Services.JournalService JournalService
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+
+<link href="css/write.css" rel="stylesheet" />
+
+<div class="container-fluid write-page mt-4 fade-in">
+    <div class="row">
+        <!-- Editor Column -->
+        <div class="col-lg-6 mb-4">
+            <div class="card editor-card">
+                <div class="card-header editor-header">
+                    <h4>✍️ Write Your Journal Entry</h4>
+                </div>
+                <div class="card-body p-4">
+                    <EditForm Model="entry" OnValidSubmit="Save">
+                        <!-- Title -->
+                        <div class="mb-4">
+                            <label class="form-label">Title</label>
+                            <InputText class="form-control" 
+                                       @bind-Value="entry.Title" 
+                                       placeholder="Enter your journal title..." />
+                        </div>
+
+                        <!-- Primary & Secondary Mood Picker -->
+                        <div class="mb-4">
+                            <label class="form-label">Choose Your Mood</label>
+                            
+                            <!-- Primary Mood Selection -->
+                            <div class="btn-group d-flex mb-3" role="group">
+                                <button type="button" 
+                                        class="btn @(primaryMood == "Happy" ? "btn-primary" : "btn-outline-primary")"
+                                        @onclick='() => SelectPrimaryMood("Happy")'>
+                                    😊 Happy
+                                </button>
+                                <button type="button" 
+                                        class="btn @(primaryMood == "Neutral" ? "btn-secondary" : "btn-outline-secondary")"
+                                        @onclick='() => SelectPrimaryMood("Neutral")'>
+                                    😐 Neutral
+                                </button>
+                                <button type="button" 
+                                        class="btn @(primaryMood == "Sad" ? "btn-info" : "btn-outline-info")"
+                                        @onclick='() => SelectPrimaryMood("Sad")'>
+                                    😢 Sad
+                                </button>
+                            </div>
+
+                            <!-- Secondary Moods -->
+                            @if (!string.IsNullOrEmpty(primaryMood))
+                            {
+                                <small class="form-text text-muted d-block mb-2">
+                                    Select up to 2 secondary moods:
+                                </small>
+                                <div class="secondary-moods">
+                                    @foreach (var mood in GetSecondaryMoodsForPrimary(primaryMood))
+                                    {
+                                        <button type="button"
+                                                class="btn btn-sm @(selectedSecondaryMoods.Contains(mood) ? "btn-success" : "btn-outline-success") me-2 mb-2"
+                                                @onclick="() => ToggleSecondaryMood(mood)"
+                                                disabled="@(!selectedSecondaryMoods.Contains(mood) && selectedSecondaryMoods.Count >= 2)">
+                                            @mood
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Custom Tags Management -->
+                        <div class="mb-4">
+                            <label class="form-label">Tags</label>
+                            
+                            <!-- Selected Tags Display -->
+                            <div class="selected-tags mb-2">
+                                @foreach (var tag in selectedTags)
+                                {
+                                    <span class="badge bg-primary me-2 mb-2">
+                                        @tag
+                                        <button type="button" class="btn-close btn-close-white ms-1" 
+                                                style="font-size: 0.65rem;" 
+                                                @onclick="() => RemoveTag(tag)"></button>
+                                    </span>
+                                }
+                            </div>
+
+                            <!-- Tag Input and Add Button -->
+                            <div class="input-group">
+                                <input type="text" 
+                                       class="form-control" 
+                                       @bind="newTag"
+                                       @onkeypress="HandleTagKeyPress"
+                                       placeholder="Enter a tag..." />
+                                <button type="button" class="btn btn-outline-primary" @onclick="AddTag">
+                                    + Add Tag
+                                </button>
+                            </div>
+                            <small class="tag-help">Press Enter or click Add Tag button</small>
+                        </div>
+
+                        <!-- Content with Markdown -->
+                        <div class="mb-4">
+                            <label class="form-label">Content (Markdown Supported)</label>
+                            <textarea id="contentEditor"
+                                      class="form-control" 
+                                      rows="12"
+                                      @bind="entry.Content"
+                                      @bind:event="oninput"
+                                      @bind:after="UpdatePreview"
+                                      placeholder="Write your thoughts here...
+
+# Use Markdown formatting:
+## Headings (add space after #)
+- Lists
+**Bold** and *italic* text
+> Quotes
+
+Start typing to see the preview!"></textarea>
+                            <small class="tag-help">
+                                💡 Tip: For headings, add a space after #: "# Title", not "#Title".
+                            </small>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-3">
+                            <button class="btn btn-primary btn-save" type="submit">
+                                @(isEditMode ? "💾 Update Entry" : "💾 Save Entry")
+                            </button>
+                            <button class="btn btn-outline-secondary btn-cancel" type="button" @onclick="OnCancel">
+                                ✖️ Cancel
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Column -->
+        <div class="col-lg-6 mb-4">
+            <div class="card preview-card">
+                <div class="card-header preview-header">
+                    <h4>👁️ Live Preview</h4>
+                </div>
+                <div class="card-body p-0">
+                    <div id="markdown-preview">
+                        <p class="text-muted text-center py-5">Preview will appear here...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private Journal entry = new Journal();
+    private bool isInitialized = false;
+    private bool isEditMode = false; // Track if editing existing journal
+    
+    // Mood management
+    private string primaryMood = "";
+    private List<string> selectedSecondaryMoods = new();
+    
+    // Tag management
+    private List<string> selectedTags = new();
+    private string newTag = "";
+    
+    // Secondary mood options for each primary mood
+    private Dictionary<string, List<string>> secondaryMoodOptions = new()
+    {
+        { "Happy", new List<string> { "Excited", "Grateful", "Peaceful", "Proud", "Joyful", "Optimistic" } },
+        { "Neutral", new List<string> { "Calm", "Thoughtful", "Tired", "Bored", "Content", "Uncertain" } },
+        { "Sad", new List<string> { "Disappointed", "Lonely", "Anxious", "Stressed", "Worried", "Melancholic" } }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Check if journal exists for today
+        var todayJournal = await JournalService.GetTodayJournalAsync();
+        
+        if (todayJournal != null)
+        {
+            // Load existing journal for editing
+            entry = todayJournal;
+            isEditMode = true;
+            
+            // Load tags
+            if (!string.IsNullOrEmpty(entry.Tags))
+            {
+                selectedTags = entry.Tags.Split(',').Select(t => t.Trim()).ToList();
+            }
+            
+            // Determine primary mood from emoji
+            if (!string.IsNullOrEmpty(entry.Emoji))
+            {
+                primaryMood = entry.Emoji switch
+                {
+                    "😊" => "Happy",
+                    "😐" => "Neutral",
+                    "😢" => "Sad",
+                    _ => ""
+                };
+            }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            isInitialized = true;
+            await UpdatePreview();
+        }
+    }
+
+    private async Task UpdatePreview()
+    {
+        if (!isInitialized) return;
+        
+        try
+        {
+            await JS.InvokeVoidAsync("markdownPreview.updatePreview", entry.Content ?? "");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Preview error: {ex.Message}");
+        }
+    }
+    
+    // Mood management methods
+    private void SelectPrimaryMood(string mood)
+    {
+        primaryMood = mood;
+        selectedSecondaryMoods.Clear();
+        
+        // Set emoji based on primary mood
+        entry.Emoji = mood switch
+        {
+            "Happy" => "😊",
+            "Neutral" => "😐",
+            "Sad" => "😢",
+            _ => ""
+        };
+    }
+    
+    private void ToggleSecondaryMood(string mood)
+    {
+        if (selectedSecondaryMoods.Contains(mood))
+        {
+            selectedSecondaryMoods.Remove(mood);
+        }
+        else if (selectedSecondaryMoods.Count < 2)
+        {
+            selectedSecondaryMoods.Add(mood);
+        }
+    }
+    
+    private List<string> GetSecondaryMoodsForPrimary(string primary)
+    {
+        return secondaryMoodOptions.ContainsKey(primary) 
+            ? secondaryMoodOptions[primary] 
+            : new List<string>();
+    }
+    
+    // Tag management methods
+    private void AddTag()
+    {
+        if (!string.IsNullOrWhiteSpace(newTag) && !selectedTags.Contains(newTag.Trim()))
+        {
+            selectedTags.Add(newTag.Trim());
+            newTag = "";
+        }
+    }
+    
+    private void RemoveTag(string tag)
+    {
+        selectedTags.Remove(tag);
+    }
+    
+    private void HandleTagKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            AddTag();
+        }
+    }
+
+    private async Task Save()
+    {
+        // Save tags as comma-separated string
+        entry.Tags = string.Join(", ", selectedTags);
+        
+        if (isEditMode)
+        {
+            await JournalService.UpdateAsync(entry);
+        }
+        else
+        {
+            entry.Date = DateTime.Now;
+            entry.CreatedAt = DateTime.UtcNow;
+            await JournalService.AddAsync(entry);
+        }
+        
+        // Save secondary moods if any are selected
+        // Note: For a complete implementation, we should update the secondary moods in the DB
+        // For now, we'll mainly focus on the journal entry update
+        
+        NavManager.NavigateTo("/");
+    }
+
+    private void OnCancel()
+    {
+        NavManager.NavigateTo("/");
+    }
+}

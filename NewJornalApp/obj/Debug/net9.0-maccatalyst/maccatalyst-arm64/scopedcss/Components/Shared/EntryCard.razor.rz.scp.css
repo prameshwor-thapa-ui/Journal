@@ -1,0 +1,34 @@
+.entry-card[b-uv45kw085u] {
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 6px 18px var(--card-shadow, rgba(15, 20, 30, 0.06));
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 140px;
+}
+
+.card-emoji[b-uv45kw085u] {
+  font-size: 1.3rem;
+}
+
+.card-title[b-uv45kw085u] {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #c82333;
+}
+
+.card-excerpt[b-uv45kw085u] {
+  color: var(--text-color);
+  font-size: 0.9rem;
+  line-height: 1.25;
+  margin: 0;
+  flex: 1 0 auto;
+}
+
+.card-date[b-uv45kw085u] {
+  font-size: 0.8rem;
+  color: var(--secondary-text, #9aa0a6);
+}

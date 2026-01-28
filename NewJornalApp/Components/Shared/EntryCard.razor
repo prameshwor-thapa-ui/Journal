@@ -1,0 +1,19 @@
+<div class="entry-card">
+  <div class="card-emoji">@Emoji</div>
+  <div class="card-body">
+    <h3 class="card-title">@Title</h3>
+    <p class="card-excerpt">@Excerpt</p>
+    <div class="d-flex justify-content-between align-items-center mt-2">
+        <div class="card-date">@Date</div>
+        <a href="/journal/@Id" class="btn btn-sm btn-link text-decoration-none">Show More →</a>
+    </div>
+  </div>
+</div>
+
+@code {
+  [Parameter] public int Id { get; set; }
+  [Parameter] public string Emoji { get; set; } = "😊";
+  [Parameter] public string Title { get; set; } = string.Empty;
+  [Parameter] public string Excerpt { get; set; } = string.Empty;
+  [Parameter] public string Date { get; set; } = string.Empty;
+}

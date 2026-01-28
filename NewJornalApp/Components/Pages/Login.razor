@@ -1,0 +1,63 @@
+@page "/login"
+@using NewJornalApp.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [AllowAnonymous]
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Nav
+
+<div class="row justify-content-center mt-5 fade-in">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-lg border-0 rounded-lg">
+            <div class="card-header border-0 text-white p-4" 
+                 style="background: linear-gradient(135deg, #c82333 0%, #a01a28 100%); border-radius: 12px 12px 0 0;">
+                <h3 class="mb-0 text-center">🔐 Login</h3>
+                <p class="mb-0 mt-2 text-center opacity-75">Welcome back to your journal</p>
+            </div>
+            <div class="card-body p-4">
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger">@errorMessage</div>
+                }
+
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-control" @bind="username" placeholder="Enter username" />
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-control" @bind="password" placeholder="Enter password" />
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary btn-lg" @onclick="HandleLogin" style="background: #c82333; border: none;">
+                        Login
+                    </button>
+                    <div class="text-center mt-2">
+                        <small class="text-muted">Don't have an account?</small> <br/>
+                        <a href="/register" class="fw-bold" style="color: #c82333;">Register Here</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string username = "";
+    private string password = "";
+    private string? errorMessage;
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            var customAuthStateProvider = (CustomAuthenticationStateProvider)AuthStateProvider;
+            await customAuthStateProvider.Login(username, password);
+            Nav.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Invalid username or password";
+        }
+    }
+}

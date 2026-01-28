@@ -1,0 +1,122 @@
+@page "/calendar"
+@using NewJornalApp.Models
+@inject NewJornalApp.Services.JournalService JournalService
+
+<div class="calendar-page">
+  <div class="calendar-header">
+    <h2>@currentMonth.ToString("MMMM yyyy")</h2>
+    <div class="calendar-controls">
+      <button class="btn" @onclick="PrevMonth">‹</button>
+      <button class="btn" @onclick="NextMonth">›</button>
+    </div>
+  </div>
+
+  <div class="calendar-grid">
+    <div class="weekday">Sun</div>
+    <div class="weekday">Mon</div>
+    <div class="weekday">Tue</div>
+    <div class="weekday">Wed</div>
+    <div class="weekday">Thu</div>
+    <div class="weekday">Fri</div>
+    <div class="weekday">Sat</div>
+
+    @foreach (var cell in MonthGrid)
+    {
+        if (cell == null)
+        {
+            <div class="day empty"></div>
+        }
+        else
+        {
+            var hasEntry = EntriesByDate.ContainsKey(cell.Value);
+            var css = "day" + (hasEntry ? " has-entry" : "") + (SelectedDate == cell ? " selected" : "");
+            <div class="@css" @onclick="() => SelectDay(cell.Value)">
+                <div class="day-number">@cell.Value.Day</div>
+                @if (hasEntry)
+                {
+                    <div class="entry-count">@EntriesByDate[cell.Value].Count</div>
+                }
+            </div>
+        }
+    }
+  </div>
+
+  <div class="day-entries">
+    @if (SelectedDate == null)
+    {
+        <p><em>Select a day to see entries.</em></p>
+    }
+    else if (!EntriesByDate.ContainsKey(SelectedDate.Value) || !EntriesByDate[SelectedDate.Value].Any())
+    {
+        <p><em>No entries for @SelectedDate.Value.ToLongDateString().</em></p>
+    }
+    else
+    {
+        <h3>Entries for @SelectedDate.Value.ToLongDateString()</h3>
+        @foreach (var e in EntriesByDate[SelectedDate.Value])
+        {
+            <EntryCard Id="@e.Id" Emoji="@e.Emoji" Title="@e.Title" Excerpt="@(e.Content?.Length > 200 ? e.Content.Substring(0,200) + "..." : e.Content)" Date="@e.Date.ToLongDateString()" />
+        }
+    }
+  </div>
+</div>
+
+@code {
+    private DateOnly currentMonth = DateOnly.FromDateTime(DateTime.Now);
+    private DateOnly? SelectedDate;
+    private List<DateOnly?> MonthGrid = new();
+    private List<Journal> AllEntries = new();
+    private Dictionary<DateOnly, List<Journal>> EntriesByDate = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEntries();
+        BuildGrid();
+    }
+
+    private async Task LoadEntries()
+    {
+        AllEntries = await JournalService.GetAllAsync();
+        EntriesByDate = AllEntries.GroupBy(j => DateOnly.FromDateTime(j.Date)).ToDictionary(g => g.Key, g => g.ToList());
+    }
+
+    private void BuildGrid()
+    {
+        MonthGrid.Clear();
+        var first = new DateOnly(currentMonth.Year, currentMonth.Month, 1);
+        var daysInMonth = DateTime.DaysInMonth(first.Year, first.Month);
+        var prefix = (int)first.DayOfWeek; // 0=Sun
+
+        for (int i = 0; i < prefix; i++) MonthGrid.Add(null);
+        for (int d = 1; d <= daysInMonth; d++) MonthGrid.Add(new DateOnly(currentMonth.Year, currentMonth.Month, d));
+        // pad to full weeks
+        while (MonthGrid.Count % 7 != 0) MonthGrid.Add(null);
+    }
+
+    private async Task RefreshAndBuild()
+    {
+        await LoadEntries();
+        BuildGrid();
+        StateHasChanged();
+    }
+
+    private void SelectDay(DateOnly day)
+    {
+        if (SelectedDate == day) SelectedDate = null;
+        else SelectedDate = day;
+    }
+
+    private async Task PrevMonth()
+    {
+        currentMonth = currentMonth.AddMonths(-1);
+        BuildGrid();
+        await RefreshAndBuild();
+    }
+
+    private async Task NextMonth()
+    {
+        currentMonth = currentMonth.AddMonths(1);
+        BuildGrid();
+        await RefreshAndBuild();
+    }
+}

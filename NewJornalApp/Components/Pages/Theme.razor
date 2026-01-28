@@ -1,0 +1,46 @@
+@page "/theme"
+@inject IJSRuntime JS
+
+<div class="container-fluid mt-4 fade-in">
+    <h3>Appearance</h3>
+    <p class="text-muted">Customize the look and feel of your journal.</p>
+
+    <div class="row mt-5">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm p-4 border-0 rounded-lg text-center" style="cursor: pointer;" @onclick="ToggleTheme">
+                <div class="card-body">
+                    <div class="mb-3" style="font-size: 3rem;">
+                        @(isDark ? "☀️" : "🌙")
+                    </div>
+                    <h5 class="card-title">@(isDark ? "Light Mode" : "Dark Mode")</h5>
+                    <p class="card-text text-muted">
+                        @(isDark ? "Switch back to light theme" : "Switch to dark theme for night usage")
+                    </p>
+                    <button class="btn btn-primary mt-2">
+                        Toggle Theme
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool isDark = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var currentTheme = await JS.InvokeAsync<string>("themeManager.getTheme");
+            isDark = currentTheme == "dark";
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleTheme()
+    {
+        var newTheme = await JS.InvokeAsync<string>("themeManager.toggleTheme");
+        isDark = newTheme == "dark";
+    }
+}

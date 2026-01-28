@@ -1,0 +1,48 @@
+﻿@page "/"
+@inject NewJornalApp.Services.JournalService JournalService
+
+<div class="home-header">
+    <div class="title-row">
+        <h1>Journal</h1>
+        <div class="actions">
+            <input class="search-input" placeholder="Search entries..." />
+            <a class="btn btn-primary" href="/write">+ New Entry</a>
+        </div>
+    </div>
+
+    <div class="subheading">December 2025</div>
+
+    <div class="features-row">
+        <a class="feature-card btn btn-outline" href="/write">✍️ Write</a>
+        <a class="feature-card btn btn-outline" href="/calendar">📅 Calendar</a>
+        <a class="feature-card btn btn-outline" href="/search">🔎 Search</a>
+
+    </div>
+</div>
+
+<section class="entries-grid">
+    @if (entries == null)
+    {
+        <p><em>Loading entries…</em></p>
+    }
+    else if (!entries.Any())
+    {
+        <p><em>No entries yet — start by writing one.</em></p>
+    }
+    else
+    {
+        @foreach (var e in entries)
+        {
+            <EntryCard Id="@e.Id" Emoji="@e.Emoji" Title="@e.Title" Excerpt="@(e.Content?.Length > 120 ? e.Content.Substring(0,120) + "..." : e.Content)" Date="@e.Date.ToLongDateString()" />
+        }
+    }
+</section>
+
+@code {
+    private List<NewJornalApp.Models.Journal>? entries;
+
+    protected override async Task OnInitializedAsync()
+    {
+        entries = await JournalService.GetAllAsync();
+    }
+}

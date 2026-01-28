@@ -1,0 +1,101 @@
+﻿/* CSS Variables for Theming */
+:root {
+    --bg-color: #ffffff;
+    --text-color: #212529;
+    --card-bg: #ffffff;
+    --card-shadow: rgba(0, 0, 0, 0.1);
+    --border-color: #e9ecef;
+    --secondary-text: #6c757d;
+    --input-bg: #ffffff;
+    --input-text: #495057;
+    --sidebar-bg: #ffffff;
+    --sidebar-text: #333333;
+    --sidebar-hover: #f2f6fb;
+    --sidebar-border: #e9e9ee;
+}
+
+[data-theme="dark"] {
+    --bg-color: #121212;
+    --text-color: #ffffff;
+    --card-bg: #1e1e1e;
+    --card-shadow: rgba(0, 0, 0, 0.5);
+    --border-color: #2d2d2d;
+    --secondary-text: #adb5bd;
+    --input-bg: #2d2d2d;
+    --input-text: #ffffff;
+    --sidebar-bg: #1e1e1e;
+    --sidebar-text: #ffffff;
+    --sidebar-hover: #2d2d2d;
+    --sidebar-border: #2d2d2d;
+}
+
+html,
+body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+/* Update standard elements to use variables */
+.card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+}
+
+.text-muted {
+    color: var(--secondary-text) !important;
+}
+
+.form-control {
+    background-color: var(--input-bg);
+    color: var(--input-text);
+    border-color: var(--border-color);
+}
+
+.form-control:focus {
+    background-color: var(--input-bg);
+    color: var(--input-text);
+}
+
+/* Keep existing styles */
+a,
+.btn-link {
+    color: #c82333;
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: #c82333;
+    border-color: #b21f2d;
+}
+
+.content {
+    padding-top: 1.1rem;
+}
+
+/* ... error UI ... */
+#blazor-error-ui {
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
+
+/* Ensure forms and other elements don't have excessive z-index */
+.form-control,
+.card,
+.btn {
+    z-index: auto;
+}

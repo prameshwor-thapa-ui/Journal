@@ -1,0 +1,322 @@
+@page "/dashboard"
+@using NewJornalApp.Models
+@using NewJornalApp.Services
+@using System.Text.RegularExpressions
+@inject JournalService JournalService
+@inject IJSRuntime JS
+
+<div class="container-fluid mt-4 fade-in">
+    <h3>Dashboard</h3>
+
+    <div class="row mb-4">
+        <!-- Streak Card -->
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center p-3 h-100 border-0 rounded-lg">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Daily Streak</h5>
+                    <div class="display-4 text-primary fw-bold">@Streak 🔥</div>
+                    <p class="card-text text-muted">Consecutive days journaling</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Words Card -->
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center p-3 h-100 border-0 rounded-lg">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Total Words</h5>
+                    <div class="display-4 text-success fw-bold">@TotalWords ✍️</div>
+                    <p class="card-text text-muted">Words written in total</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mood Summary -->
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center p-3 h-100 border-0 rounded-lg">
+                <div class="card-body">
+                   <h5 class="card-title text-muted">Recent Mood</h5>
+                   <div class="d-flex justify-content-center align-items-center" style="height: 60px;">
+                       @if(!string.IsNullOrEmpty(LatestMood))
+                       {
+                           <div style="font-size: 3.5rem;">@LatestMood</div>
+                       }
+                       else
+                       {
+                           <span class="text-muted fs-6">No mood yet.</span>
+                       }
+                   </div>
+                   <p class="card-text text-muted mt-2">From your latest entry</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Tags & Missed Days Row -->
+    <div class="row mb-4">
+        <!-- Recent Tags -->
+        <div class="col-md-6">
+            <div class="card shadow-sm p-3 border-0 rounded-lg h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-muted mb-3">Recent Tags</h5>
+                    @if(RecentTags != null && RecentTags.Any())
+                    {
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach(var tag in RecentTags)
+                            {
+                                <span class="badge bg-primary p-2" style="font-size: 0.9rem;">@tag</span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No tags found. Use #hashtags in your journal entries!</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Missed Days -->
+        <div class="col-md-6">
+            <div class="card shadow-sm text-center p-3 border-0 rounded-lg h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Missed Days This Month</h5>
+                    <div class="display-4 text-warning fw-bold">@MissedDays 📅</div>
+                    <p class="card-text text-muted">Days without an entry in @DateTime.Now.ToString("MMMM")</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row">
+        <!-- Word Count Chart -->
+        <div class="col-md-8 mb-4">
+            <div class="card shadow-sm border-0 rounded-lg">
+                <div class="card-header border-bottom-0">
+                    <h5 class="mb-0">Word Count (Last 7 Days)</h5>
+                </div>
+                <div class="card-body">
+                    <div style="height: 300px;">
+                        <canvas id="wordCountChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tags Chart -->
+        <div class="col-md-4 mb-4">
+             <div class="card shadow-sm border-0 rounded-lg">
+                <div class="card-header border-bottom-0">
+                    <h5 class="mb-0">Top Tags</h5>
+                </div>
+                <div class="card-body">
+                     <div style="height: 300px;">
+                        @if(TagLabels.Any())
+                        {
+                             <canvas id="tagsChart"></canvas>
+                        }
+                        else
+                        {
+                            <div class="d-flex align-items-center justify-content-center h-100 text-muted">
+                                No hashtags found.
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Journal> allJournals = new();
+    private int Streak { get; set; } = 0;
+    private int TotalWords { get; set; } = 0;
+    private string? LatestMood { get; set; }
+    private List<string?> RecentMoods { get; set; } = new();
+
+    private List<string> WordCountLabels = new();
+    private List<int> WordCountData = new();
+
+    private List<string> TagLabels = new();
+    private List<int> TagData = new();
+    
+    private int MissedDays { get; set; } = 0;
+    private List<string> RecentTags { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        allJournals = await JournalService.GetAllAsync();
+        CalculateStats();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && allJournals.Any())
+        {
+            await RenderCharts();
+        }
+    }
+
+    private void CalculateStats()
+    {
+        if (!allJournals.Any()) return;
+
+        // 1. Streak
+        // Sort dates descending, remove time part
+        var dates = allJournals.Select(j => j.Date.Date).Distinct().OrderByDescending(d => d).ToList();
+        Streak = 0;
+        var today = DateTime.Today;
+
+        if (dates.Contains(today))
+        {
+            Streak = 1;
+            var checkDate = today.AddDays(-1);
+            while (dates.Contains(checkDate))
+            {
+                Streak++;
+                checkDate = checkDate.AddDays(-1);
+            }
+        }
+        else if (dates.Contains(today.AddDays(-1)))
+        {
+             // If didn't journal today but did yesterday, streak is still alive? 
+             // Typically current streak implies contiguous days up to now. 
+             // Let's count back from yesterday if today is missed but yesterday exists.
+             var checkDate = today.AddDays(-1);
+              while (dates.Contains(checkDate))
+            {
+                Streak++;
+                checkDate = checkDate.AddDays(-1);
+            }
+        }
+        // Else streak is 0
+
+        // 2. Total Words & Recent Moods
+        TotalWords = allJournals.Sum(j => CountWords(j.Content));
+        
+        // Get single latest mood
+        var lastEntry = allJournals.OrderByDescending(j => j.Date).FirstOrDefault();
+        LatestMood = lastEntry?.Emoji;
+
+        // 3. Word Count Chart Data (Last 7 Days)
+        WordCountLabels.Clear();
+        WordCountData.Clear();
+        for (int i = 6; i >= 0; i--)
+        {
+            var d = DateTime.Today.AddDays(-i);
+            WordCountLabels.Add(d.ToString("MMM dd"));
+            
+            var sum = allJournals.Where(j => j.Date.Date == d).Sum(j => CountWords(j.Content));
+            WordCountData.Add(sum);
+        }
+
+        // 4. Tags - Extract from BOTH Tags field AND #hashtags in content
+        var tagCounts = new Dictionary<string, int>();
+        var regex = new Regex(@"#\w+");
+        
+        foreach (var j in allJournals)
+        {
+            // Get tags from Tags field (comma-separated)
+            if (!string.IsNullOrEmpty(j.Tags))
+            {
+                var tagsArray = j.Tags.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var tag in tagsArray)
+                {
+                    var cleanTag = tag.Trim();
+                    if (!string.IsNullOrEmpty(cleanTag))
+                    {
+                        // Normalize to hashtag format
+                        if (!cleanTag.StartsWith("#"))
+                            cleanTag = "#" + cleanTag;
+                        
+                        // Use explicit type or just rely heavily on string
+                        if (tagCounts.ContainsKey(cleanTag))
+                            tagCounts[cleanTag]++;
+                        else
+                            tagCounts[cleanTag] = 1;
+                    }
+                }
+            }
+            
+            // Get hashtags from content
+            var matches = regex.Matches(j.Content ?? "");
+            foreach (Match m in matches)
+            {
+                var tag = m.Value; // e.g. #happy
+                if (tagCounts.ContainsKey(tag))
+                    tagCounts[tag]++;
+                else
+                    tagCounts[tag] = 1;
+            }
+        }
+
+        var topTags = tagCounts.OrderByDescending(x => x.Value).Take(6).ToList();
+        TagLabels = topTags.Select(x => x.Key).ToList();
+        TagData = topTags.Select(x => x.Value).ToList();
+        
+        // Recent unique tags from last 10 entries (both Tags field and hashtags)
+        var recentEntries = allJournals.OrderByDescending(j => j.Date).Take(10);
+        var recentTagsSet = new HashSet<string>();
+        
+        foreach (var j in recentEntries)
+        {
+            // Get from Tags field
+            if (!string.IsNullOrEmpty(j.Tags))
+            {
+                var tagsArray = j.Tags.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var tag in tagsArray)
+                {
+                    var cleanTag = tag.Trim();
+                    if (!string.IsNullOrEmpty(cleanTag))
+                    {
+                        // Normalize to hashtag format
+                        if (!cleanTag.StartsWith("#"))
+                            cleanTag = "#" + cleanTag;
+                            
+                        recentTagsSet.Add(cleanTag);
+                        if (recentTagsSet.Count >= 10) break;
+                    }
+                }
+            }
+            
+            // Get from content hashtags
+            var matches = regex.Matches(j.Content ?? "");
+            foreach (Match m in matches)
+            {
+                recentTagsSet.Add(m.Value);
+                if (recentTagsSet.Count >= 10) break;
+            }
+            
+            if (recentTagsSet.Count >= 10) break;
+        }
+        RecentTags = recentTagsSet.ToList();
+        
+        // 5. Calculate Missed Days (current month)
+        var now = DateTime.Now;
+        var daysInMonth = DateTime.DaysInMonth(now.Year, now.Month);
+        var journalDaysThisMonth = allJournals
+            .Where(j => j.Date.Year == now.Year && j.Date.Month == now.Month)
+            .Select(j => j.Date.Day)
+            .Distinct()
+            .Count();
+        
+        MissedDays = Math.Max(0, now.Day - journalDaysThisMonth);
+    }
+
+    private int CountWords(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) return 0;
+        return content.Split(new[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Length;
+    }
+
+    private async Task RenderCharts()
+    {
+        await JS.InvokeVoidAsync("dashboardCharts.renderWordCountChart", "wordCountChart", WordCountLabels, WordCountData);
+        if (TagLabels.Any())
+        {
+            await JS.InvokeVoidAsync("dashboardCharts.renderTagsChart", "tagsChart", TagLabels, TagData);
+        }
+    }
+}

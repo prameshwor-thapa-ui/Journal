@@ -1,0 +1,259 @@
+@page "/export"
+@using NewJornalApp.Models
+@using NewJornalApp.Services
+@using System.Text.Json
+@inject JournalService JournalService
+@inject IJSRuntime JS
+
+<link href="css/export.css" rel="stylesheet" />
+
+<div class="container-fluid export-page mt-4 fade-in">
+    <div class="export-header">
+        <h3>📄 Export Journals to PDF</h3>
+        <p class="mb-0 mt-2">Select journal entries to export as a PDF document</p>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card filter-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Select Entries</span>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary select-all-btn me-2" @onclick="SelectAll">
+                            ✓ Select All
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary select-all-btn" @onclick="DeselectAll">
+                            ✗ Deselect All
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    @if (!journals.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <p>No journal entries found.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="journal-list">
+                            @foreach (var journal in journals.OrderByDescending(j => j.Date))
+                            {
+                                <div class="journal-item" @onclick="() => ToggleSelection(journal.Id)">
+                                    <div class="d-flex align-items-start">
+                                        <input type="checkbox" 
+                                               class="journal-checkbox"
+                                               checked="@selectedIds.Contains(journal.Id)"
+                                               @onclick:preventDefault
+                                               @onclick:stopPropagation />
+                                        <div class="flex-grow-1">
+                                            <div class="journal-title">@journal.Title</div>
+                                            <div class="journal-meta">
+                                                @journal.Date.ToString("MMM dd, yyyy")
+                                                @if (!string.IsNullOrEmpty(journal.Emoji))
+                                                {
+                                                    <span> • @journal.Emoji</span>
+                                                }
+                                                @if (!string.IsNullOrEmpty(journal.Tags))
+                                                {
+                                                    <span> • Tags: @journal.Tags</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (selectedIds.Any())
+            {
+                <div class="export-summary">
+                    <strong>@selectedIds.Count</strong> @(selectedIds.Count == 1 ? "entry" : "entries") selected for export
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(exportMessage))
+            {
+                <div class="alert @(exportSuccess ? "alert-success" : "alert-danger") mt-3 d-flex justify-content-between align-items-center">
+                    <span>@exportMessage</span>
+                    @if (exportSuccess && !string.IsNullOrEmpty(lastExportFilename))
+                    {
+                        <button class="btn btn-success btn-sm ms-3" @onclick="SaveToDevice">
+                            💾 Save to Documents
+                        </button>
+                    }
+                </div>
+            }
+
+            <div class="text-center">
+                <button class="btn btn-primary export-btn" 
+                        @onclick="ExportToPdf" 
+                        disabled="@(!selectedIds.Any() || isExporting)">
+                    @if (isExporting)
+                    {
+                        <span>⏳ Generating PDF...</span>
+                    }
+                    else
+                    {
+                        <span>📥 Export to PDF (@selectedIds.Count @(selectedIds.Count == 1 ? "entry" : "entries"))</span>
+                    }
+                </button>
+            </div>
+        </div>
+        
+        @if (!string.IsNullOrEmpty(pdfPreviewUrl))
+        {
+            <div class="col-12 mt-4 fade-in">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">PDF Preview</h5>
+                        <button class="btn btn-sm btn-light" @onclick="ClosePreview">Close</button>
+                    </div>
+                    <div class="card-body p-0">
+                        <embed src="@pdfPreviewUrl" type="application/pdf" width="100%" height="800px" />
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Journal> journals = new();
+    private HashSet<int> selectedIds = new();
+    private bool isExporting = false;
+    private string exportMessage = "";
+    private bool exportSuccess = false;
+    private string pdfPreviewUrl = "";
+    private string lastExportBase64 = "";
+    private string lastExportFilename = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        journals = await JournalService.GetAllAsync();
+    }
+    
+    private void ClosePreview()
+    {
+        pdfPreviewUrl = "";
+        exportMessage = "";
+        StateHasChanged();
+    }
+
+    private void ToggleSelection(int id)
+    {
+        if (selectedIds.Contains(id))
+            selectedIds.Remove(id);
+        else
+            selectedIds.Add(id);
+    }
+
+    private void SelectAll()
+    {
+        selectedIds = journals.Select(j => j.Id).ToHashSet();
+    }
+
+    private void DeselectAll()
+    {
+        selectedIds.Clear();
+    }
+
+    private async Task ExportToPdf()
+    {
+        if (!selectedIds.Any()) return;
+
+        isExporting = true;
+        exportMessage = "";
+        StateHasChanged();
+
+        try
+        {
+            var selectedJournals = journals
+                .Where(j => selectedIds.Contains(j.Id))
+                .OrderBy(j => j.Date)
+                .Select(j => new
+                {
+                    title = j.Title,
+                    content = j.Content,
+                    date = j.Date,
+                    emoji = j.Emoji,
+                    tags = j.Tags
+                })
+                .ToList();
+
+            // Call JavaScript to generate PDF
+            var result = await JS.InvokeAsync<JsonElement>("pdfExport.exportJournals", selectedJournals, "My Journal Export");
+            
+            if (result.GetProperty("success").GetBoolean())
+            {
+                var pdfData = result.GetProperty("pdfData").GetString();
+                var filename = result.GetProperty("filename").GetString();
+                
+                if (!string.IsNullOrEmpty(pdfData) && !string.IsNullOrEmpty(filename))
+                {
+                    // Convert data URI to base64
+                    var base64Data = pdfData.Split(',')[1];
+                    var bytes = Convert.FromBase64String(base64Data);
+                    
+                    // Save to temporary file
+                    var tempPath = Path.Combine(FileSystem.CacheDirectory, filename);
+                    await File.WriteAllBytesAsync(tempPath, bytes);
+                    
+                    // Display in app
+                    pdfPreviewUrl = $"data:application/pdf;base64,{base64Data}";
+                    
+                    exportSuccess = true;
+                    exportMessage = "✅ PDF generated! Previewing below.";
+                    
+                    // Store for saving
+                    lastExportBase64 = base64Data;
+                    lastExportFilename = filename;
+                }
+                else
+                {
+                    exportSuccess = false;
+                    exportMessage = "❌ Export failed: Invalid PDF data";
+                }
+            }
+            else
+            {
+                exportSuccess = false;
+                exportMessage = $"❌ Export failed: {result.GetProperty("error").GetString()}";
+            }
+        }
+        catch (Exception ex)
+        {
+            exportSuccess = false;
+            exportMessage = $"❌ Export error: {ex.Message}";
+            Console.WriteLine($"Export error: {ex}");
+        }
+        finally
+        {
+            isExporting = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task SaveToDevice()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(lastExportBase64) || string.IsNullOrEmpty(lastExportFilename)) return;
+
+            var bytes = Convert.FromBase64String(lastExportBase64);
+            var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            var filePath = Path.Combine(documentsPath, lastExportFilename);
+            
+            await File.WriteAllBytesAsync(filePath, bytes);
+            
+            await JS.InvokeVoidAsync("alert", $"PDF Saved to Documents folder:\n{filePath}");
+        }
+        catch (Exception ex)
+        {
+             await JS.InvokeVoidAsync("alert", $"Error: Could not save file: {ex.Message}");
+        }
+    }
+}
